@@ -10,7 +10,8 @@ I didn't synced the sound in the beginning because I had problems with the DaVin
 Now our soundguy needs the information which takes we used and how the connected audio files are named. It was quite easy to put the clipname in the burnin, but DaVinci Resolve wouldn't let me display the actual filename of the associated audiofile, which meant that the easiest way to give all the informations to the soundguy would be to rename all the files to the clipnames and have a mapping file, where I could look for the original name in case I needed to. 
 
 # The Solutions
-You can export the metadata in DaVinci Resolve under File -> Export Metadata from -> Mediapool. This would work perfectly for normal clips. The column "EDL Clip Name" exports the displayed clipname. BUT! for audiofiles DaVinci Resolve wouldn't let me export via this feature. The only metadata column that gets exported is "Sound Roll #", which means I have to find the names from the postgres database.
+You can export the metadata in DaVinci Resolve under File -> Export Metadata from -> Mediapool. This would work perfectly for normal clips. The column "EDL Clip Name" exports the displayed clipname. BUT! for audiofiles DaVinci Resolve wouldn't let me export via this feature. The only metadata column that gets exported is "Sound Roll #", which means I have to find the names in the postgres database.
+The display names are in the table "Sm2MpMedia.FieldsBlob" as a base64 encoded blob.
 
 # How to use it
 - You need the metadata.csv
