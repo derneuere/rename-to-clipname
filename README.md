@@ -1,5 +1,5 @@
 # Export Files with Clipnames from Davinci Resolve
-This is a simple program, that renames and copys the clips in to a folder with the clipnames in Davinci Resolve.
+A simple program, that renames and copys the clips in to a folder with the clipnames in Davinci Resolve.
 
 ## The Problem
 It is a **_BAD_** idea to rename your source files, because it can break other workflows in different programms. That is the reason why DaVinci doesn't allow it. But there are certain usecases, where it makes sense.
