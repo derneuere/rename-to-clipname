@@ -1,6 +1,7 @@
 package niaz.faridanirad.RenameToClipname;
 
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -14,8 +15,15 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
 
@@ -29,6 +37,10 @@ import com.opencsv.CSVReaderBuilder;
 import com.opencsv.RFC4180Parser;
 import com.opencsv.RFC4180ParserBuilder;
 import com.opencsv.bean.CsvToBeanBuilder;
+import com.opencsv.bean.StatefulBeanToCsv;
+import com.opencsv.bean.StatefulBeanToCsvBuilder;
+import com.opencsv.exceptions.CsvDataTypeMismatchException;
+import com.opencsv.exceptions.CsvRequiredFieldEmptyException;
 
 /**
  * Hello world!
@@ -40,20 +52,57 @@ public class App
 	
     public static void main(String[] args)
     {
-    	List<DavinciFile> files = getDisplaynamesFromDatabase();
-    	System.out.println(files.size());
+    	writeInfoToCsv();
+    	copyFromCSVToFolderWithNewNames();
+    }
+    
+    private static void copyFromCSVToFolderWithNewNames() {
     	String metaDataCsv = getAbsolutPath("Choose the metadata.csv file: ",false);
     	String outputPath = getAbsolutPath("Choose the Output Directory: ",true);
-    	System.out.println(metaDataCsv);
-    	System.out.println(outputPath);
-    	if(isValidPath(metaDataCsv) && isValidPath(outputPath)) {
-    		writeDavinciFilesWithClipname(outputPath, getDavinciFilesFormCsv(metaDataCsv));
-    	}
-    	else{
+    	
+    	logger.debug(metaDataCsv);
+    	logger.debug(outputPath);
+    	if(!isValidPath(metaDataCsv) && !isValidPath(outputPath) ) {
     		JOptionPane.showMessageDialog(new JFrame(),
     			    "Paths are not valid");
+    		return;
     	}
+    	List<DavinciFile> files = getDavinciFilesFormCsv(metaDataCsv);
+    	
+    	if(duplicationInClipnames(files)) {
+    		JOptionPane.showMessageDialog(new JFrame(),
+    			    "There are duplicated clipnames in your csv. I added a duplicatedClips.csv. Please rename them uniquely to continue.");
+    		writeCsvFromDavinciFile(getClipsWithDuplicatedClipname(files), outputPath, "\\duplicatedClips.csv");
+    		return;
+    	}
+    	writeDavinciFilesWithClipname(outputPath, files);
+    	
     }
+    
+    private static boolean duplicationInClipnames(List<DavinciFile> files) {
+		return files.stream().filter(distinctByKey(p -> p.getSoundRoll())).collect(Collectors.toList()).size() < files.size();
+	}
+    
+    private static List<DavinciFile> getClipsWithDuplicatedClipname(List<DavinciFile> files) {
+    	List<DavinciFile> distinctFiles = files.stream().filter(distinctByKey(p -> p.getSoundRoll())).collect(Collectors.toList());
+    	List<String> duplicatedName = files.stream().filter(i -> !distinctFiles.contains(i)).map( i -> i.getSoundRoll()).collect(Collectors.toList());
+    	return files.stream().filter(i -> duplicatedName.contains(i.getSoundRoll())).collect(Collectors.toList());
+    }
+    
+    public static <T> Predicate<T> distinctByKey(Function<? super T, Object> keyExtractor) 
+    {
+        Map<Object, Boolean> map = new ConcurrentHashMap<>();
+        return t -> map.putIfAbsent(keyExtractor.apply(t), Boolean.TRUE) == null;
+    }
+
+	private static void writeInfoToCsv() {
+    	List<DavinciFile> files = getDisplaynamesFromDatabase();
+    	System.out.println(files.size());
+    	String outputPath = getAbsolutPath("Choose the Output Directory: ",true);
+    	writeCsvFromDavinciFile(files, outputPath, "\\metadata.csv");
+    }
+	
+	
 
 	private static List<DavinciFile> getDisplaynamesFromDatabase() {
 		List<DavinciFile> filesFromDatabase = new ArrayList<>();
@@ -134,6 +183,23 @@ public class App
 				e.printStackTrace();
 			}
     	}
+	}
+	
+	private static void writeCsvFromDavinciFile(List<DavinciFile> files, String outputfolder, String name) {
+		FileWriter writer = null;
+		try {
+			writer = new FileWriter(outputfolder + name , StandardCharsets.UTF_16);
+		}catch (IOException e) {
+			e.printStackTrace();
+		}
+		try {
+			new StatefulBeanToCsvBuilder<DavinciFile>(writer)
+			.build().write(files);
+			writer.flush();
+			writer.close();
+		} catch (CsvDataTypeMismatchException | CsvRequiredFieldEmptyException | IOException e) {
+			e.printStackTrace();
+		};
 	}
 
 	private static List<DavinciFile> getDavinciFilesFormCsv(String metaDataCsv) {
