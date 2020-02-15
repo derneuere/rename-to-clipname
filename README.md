@@ -35,8 +35,16 @@ For video clips:
 
 -> Done!
 
-## Technology
-- Java 11
-- Maven
-- PostgreSQL
-- OpenCSV
+### Installing
+```
+git clone
+mvn clean javafx:run
+```
+
+## Built With
+* [OpenJDK](https://adoptopenjdk.net/) - Development Environment
+* [Maven](https://maven.apache.org/) - Dependency Management
+* [PostgreSQL](https://www.postgresql.org/) - DaVinci Resolve's database
+* [OpenCSV](http://opencsv.sourceforge.net/) - Saving and Parsing .csv files
+* [OpenFX](https://openjfx.io/) - Used to design the gui
+* [JUnit](https://junit.org/junit5/) - Test framework
