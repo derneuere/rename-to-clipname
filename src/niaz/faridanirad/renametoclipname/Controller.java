@@ -1,11 +1,9 @@
 package niaz.faridanirad.renametoclipname;
 
+import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.FileReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -27,10 +25,8 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
-import javax.swing.filechooser.FileSystemView;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -54,6 +50,9 @@ public class Controller {
 	private static Logger logger = LogManager.getLogger(Controller.class);
 
 	@FXML
+	private Label outputFolderPath;
+	
+	@FXML
 	private Label metadataPath;
 
 	@FXML
@@ -70,21 +69,25 @@ public class Controller {
 		DirectoryChooser chooser = new DirectoryChooser();
 		chooser.setTitle("Open Output Folder");
 		File file = chooser.showDialog(metadataPath.getScene().getWindow());
+		outputFolderPath.setText(file.getAbsolutePath());
+	}
+	
+	public void setMetadataPath() {
+		FileChooser fileChooser = new FileChooser();
+		fileChooser.setTitle("Open metadata.csv");
+		File file = fileChooser.showOpenDialog(metadataPath.getScene().getWindow());
 		metadataPath.setText(file.getAbsolutePath());
 	}
 
 	public void loadMetadataFromDatabase() {
-		writeInfoToCsv(pgpassPath.getText(), metadataPath.getText());
+		writeInfoToCsv(pgpassPath.getText(), outputFolderPath.getText());
 	}
 
 	public void copyRenamedFilesToOutputfolder() {
-
+		copyFromCSVToFolderWithNewNames(metadataPath.getText(), outputFolderPath.getText());
 	}
 
-	private static void copyFromCSVToFolderWithNewNames() {
-		String metaDataCsv = getAbsolutPath("Choose the metadata.csv file: ", false);
-		String outputPath = getAbsolutPath("Choose the Output Directory: ", true);
-
+	private static void copyFromCSVToFolderWithNewNames(String metaDataCsv, String outputPath) {
 		logger.debug(metaDataCsv);
 		logger.debug(outputPath);
 		if (!isValidPath(metaDataCsv) && !isValidPath(outputPath)) {
@@ -92,7 +95,7 @@ public class Controller {
 			return;
 		}
 		List<DavinciFile> files = getDavinciFilesFormCsv(metaDataCsv);
-
+		logger.debug(files.size());
 		if (duplicationInClipnames(files)) {
 			JOptionPane.showMessageDialog(new JFrame(),
 					"There are duplicated clipnames in your csv. I added a duplicatedClips.csv. Please rename them uniquely to continue.");
@@ -124,15 +127,15 @@ public class Controller {
 	private static void writeInfoToCsv(String pgpassPath, String outputPath) {
 		Optional<DatabaseConfig> optionalConfig = readPgpass(pgpassPath);
 		if (optionalConfig.isPresent()) {
-			System.out.println(optionalConfig.get().toString());
-			List<DavinciFile> files = getDisplaynamesFromDatabase(optionalConfig.get());
+			DatabaseConfig config = optionalConfig.get();
+			List<DavinciFile> files = getDisplaynamesFromDatabase(config);
 			logger.debug(files.size());
 			writeCsvFromDavinciFile(files, outputPath, "\\metadata.csv");
 		}
 	}
 
 	private static Optional<DatabaseConfig> readPgpass(String pgpassPath) {
-		List<String> lines = new ArrayList();
+		List<String> lines = new ArrayList<>();
 		try {
 			lines = Files.readAllLines(Paths.get(pgpassPath), StandardCharsets.UTF_8);
 		} catch (IOException e) {
@@ -150,7 +153,8 @@ public class Controller {
 	private static List<DavinciFile> getDisplaynamesFromDatabase(DatabaseConfig config) {
 		List<DavinciFile> filesFromDatabase = new ArrayList<>();
 		String url = "jdbc:postgresql://localhost:" + config.getPort()  + "/" + config.getDatabase();
-		System.out.println(url);
+		logger.debug(url);
+		logger.debug(config);
 		Properties props = new Properties();
 		props.setProperty("user", config.getUsername());
 		props.setProperty("password", config.getPassword());
@@ -206,19 +210,6 @@ public class Controller {
 		return true;
 	}
 
-	private static String getAbsolutPath(String dialogTitle, boolean directory) {
-		JFileChooser jfc = new JFileChooser(FileSystemView.getFileSystemView().getHomeDirectory());
-		jfc.setDialogTitle(dialogTitle);
-		if (directory) {
-			jfc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-		}
-		int returnValue = jfc.showOpenDialog(null);
-		if (returnValue == JFileChooser.APPROVE_OPTION) {
-			return jfc.getSelectedFile().getAbsolutePath();
-		}
-		return "";
-	}
-
 	private static void writeDavinciFilesWithClipname(String outputPath, List<DavinciFile> csvToBean) {
 		for (DavinciFile file : csvToBean) {
 			try {
@@ -242,10 +233,9 @@ public class Controller {
 	}
 
 	private static List<DavinciFile> getDavinciFilesFormCsv(String metaDataCsv) {
-
-		InputStreamReader reader = null;
-		try (FileInputStream stream = new FileInputStream(metaDataCsv)) {
-			reader = new InputStreamReader(stream, StandardCharsets.UTF_16);
+		BufferedReader reader = null;
+		try{
+			reader = Files.newBufferedReader(Paths.get(metaDataCsv), StandardCharsets.UTF_16);
 		} catch (IOException e) {
 			logger.info(e);
 		}

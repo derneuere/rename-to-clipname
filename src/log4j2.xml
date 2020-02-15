@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<configuration status="WARN">
+<configuration status="debug">
   <appenders>
     <Console name="Console" target="SYSTEM_OUT">
       <PatternLayout pattern="%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
@@ -7,7 +7,7 @@
   </appenders>
   <loggers>     
     <root level="debug">
-      <appender-ref ref="Console" level="info"/>
+      <appender-ref ref="Console" level="debug"/>
     </root>    
   </loggers>
 </configuration>

@@ -56,4 +56,12 @@ public class DavinciFile{
 	public Path getTarget(String outputPath) {
 		return Paths.get(outputPath, soundRoll + ".wav");
 	}
+
+	@Override
+	public String toString() {
+		return "DavinciFile [fileName=" + fileName + ", clipDirectory=" + clipDirectory + ", soundRoll=" + soundRoll
+				+ "]";
+	}
+	
+	
 }
