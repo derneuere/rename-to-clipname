@@ -1,4 +1,4 @@
-package niaz.faridanirad.RenameToClipname;
+package niaz.faridanirad.renametoclipname;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
